@@ -1,0 +1,204 @@
+import 'package:flutter/material.dart';
+import 'package:adhan/adhan.dart';
+import 'package:intl/intl.dart';
+
+void main() => runApp(PrayerTimesDemo());
+
+class PrayerTimesDemo extends StatefulWidget {
+  @override
+  _PrayerTimesDemoState createState() => _PrayerTimesDemoState();
+}
+
+class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
+  final TextEditingController _latController = TextEditingController(
+    text: '60.1699',
+  );
+
+  // 65.021545, and the longitude is 25.469885. 60.1699, 24.9384
+  final TextEditingController _lngController = TextEditingController(
+    text: '24.9384',
+  );
+  PrayerTimes? _prayerTimes;
+  final DateFormat _timeFormat = DateFormat.jm();
+
+  // Using the package's example pattern for parameters
+  CalculationParameters _params =
+      CalculationMethod.muslim_world_league.getParameters();
+
+  final List<CalculationMethod> _calculationMethods = [
+    CalculationMethod.muslim_world_league,
+    CalculationMethod.egyptian,
+    CalculationMethod.karachi,
+    CalculationMethod.umm_al_qura,
+    CalculationMethod.dubai,
+    CalculationMethod.moon_sighting_committee,
+    CalculationMethod.north_america,
+    CalculationMethod.kuwait,
+    CalculationMethod.qatar,
+    CalculationMethod.singapore,
+    CalculationMethod.tehran,
+    CalculationMethod.turkey,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData.dark(),
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Prayer Times Demo')),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _buildLocationInput(),
+              _buildCalculationSettings(),
+              ElevatedButton(
+                onPressed: _calculateTimes,
+                child: const Text('Calculate Prayer Times'),
+              ),
+              if (_prayerTimes != null) _buildResults(),
+              SizedBox(height: 16),
+              const Text(
+                'This app uses the Adhan package to calculate prayer times.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationInput() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _latController,
+              decoration: const InputDecoration(labelText: 'Latitude'),
+              keyboardType: TextInputType.number,
+            ),
+            TextField(
+              controller: _lngController,
+              decoration: const InputDecoration(labelText: 'Longitude'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCalculationSettings() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            DropdownButtonFormField<CalculationMethod>(
+              value: _params.method,
+              items:
+                  _calculationMethods.map((method) {
+                    return DropdownMenuItem<CalculationMethod>(
+                      value: method,
+                      child: Text(method.name),
+                    );
+                  }).toList(),
+              onChanged: (method) {
+                setState(() {
+                  _params = method!.getParameters();
+                });
+              },
+              decoration: const InputDecoration(
+                labelText: 'Calculation Method',
+              ),
+            ),
+            DropdownButtonFormField<Madhab>(
+              value: _params.madhab,
+              items:
+                  Madhab.values.map((madhab) {
+                    return DropdownMenuItem<Madhab>(
+                      value: madhab,
+                      child: Text(madhab == Madhab.shafi ? 'Shafi' : 'Hanafi'),
+                    );
+                  }).toList(),
+              onChanged: (madhab) {
+                setState(() {
+                  _params.madhab = madhab!;
+                });
+              },
+              decoration: const InputDecoration(labelText: 'Madhab'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResults() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildTimeRow('Fajr', _prayerTimes!.fajr),
+            _buildTimeRow('Sunrise', _prayerTimes!.sunrise),
+            _buildTimeRow('Dhuhr', _prayerTimes!.dhuhr),
+            _buildTimeRow('Asr', _prayerTimes!.asr),
+            _buildTimeRow('Maghrib', _prayerTimes!.maghrib),
+            _buildTimeRow('Isha', _prayerTimes!.isha),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeRow(String name, DateTime time) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [Text(name), Text(_timeFormat.format(time))],
+      ),
+    );
+  }
+
+  void _calculateTimes() {
+    try {
+      final coordinates = Coordinates(
+        double.parse(_latController.text),
+        double.parse(_lngController.text),
+      );
+
+      if (double.parse(_latController.text).abs() >= 60) {
+        _params.highLatitudeRule = HighLatitudeRule.seventh_of_the_night;
+      } else if (double.parse(_latController.text).abs() >= 45) {
+        _params.highLatitudeRule = HighLatitudeRule.twilight_angle;
+      }
+
+      setState(() {
+        // Using the package's recommended today() method
+        _prayerTimes = PrayerTimes.today(coordinates, _params);
+      });
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Error'),
+              content: Text('Invalid input: ${e.toString()}'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+      );
+    }
+  }
+}
