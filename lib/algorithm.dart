@@ -108,13 +108,10 @@ Map<String, DateTime> calculatePrayerTimes({
 
   // Step 4: Convert hour angles to times in UTC
   DateTime timeFromHourAngle(double hRadians, bool isBeforeNoon) {
-    final hDegrees =
-        hRadians * 180 / 3.1415926535; // Convert radians to degrees
-    final offsetHours =
-        (isBeforeNoon ? -hDegrees : hDegrees) / 15; // Hours from solar noon
-    return transitUtc.add(
-      Duration(microseconds: (offsetHours * 60 * 60 * 1000000).round()),
-    );
+    final hDegrees = radiansToDegrees(hRadians);
+    final offsetHours = isBeforeNoon ? -hDegrees / 15 : hDegrees / 15;
+    final offsetMicroseconds = (offsetHours * 60 * 60 * 1000000).round();
+    return transitUtc.add(Duration(microseconds: offsetMicroseconds));
   }
 
   final sunriseUtc = timeFromHourAngle(hSunrise, true);

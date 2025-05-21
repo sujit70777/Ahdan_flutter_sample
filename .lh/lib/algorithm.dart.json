@@ -3,11 +3,15 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 0,
+            "activePatchIndex": 1,
             "patches": [
                 {
                     "date": 1747677794470,
                     "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1747678807980,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -107,15 +107,12 @@\n   final hAsr = calculateHourAngle(asrAltitude);\n \n   // Step 4: Convert hour angles to times in UTC\n   DateTime timeFromHourAngle(double hRadians, bool isBeforeNoon) {\n-    final hDegrees =\n-        hRadians * 180 / 3.1415926535; // Convert radians to degrees\n-    final offsetHours =\n-        (isBeforeNoon ? -hDegrees : hDegrees) / 15; // Hours from solar noon\n-    return transitUtc.add(\n-      Duration(microseconds: (offsetHours * 60 * 60 * 1000000).round()),\n-    );\n+    final hDegrees = radiansToDegrees(hRadians);\n+    final offsetHours = isBeforeNoon ? -hDegrees / 15 : hDegrees / 15;\n+    final offsetMicroseconds = (offsetHours * 60 * 60 * 1000000).round();\n+    return transitUtc.add(Duration(microseconds: offsetMicroseconds));\n   }\n \n   final sunriseUtc = timeFromHourAngle(hSunrise, true);\n   final sunsetUtc = timeFromHourAngle(hSunset, false);\n"
                 }
             ],
             "date": 1747677794470,

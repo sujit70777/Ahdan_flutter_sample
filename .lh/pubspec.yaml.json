@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 4,
+            "activePatchIndex": 5,
             "patches": [
                 {
                     "date": 1747416095661,
@@ -24,6 +24,10 @@
                 {
                     "date": 1747659375547,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -38,8 +38,9 @@\n   geolocator: ^14.0.0\n   intl: ^0.20.2\n   geocoding: ^3.0.0\n   timezone: ^0.10.1\n+  timezone_lookup: ^1.0.1\n \n dev_dependencies:\n   flutter_test:\n     sdk: flutter\n"
+                },
+                {
+                    "date": 1747678464837,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -33,9 +33,10 @@\n \n   # The following adds the Cupertino Icons font to your application.\n   # Use with the CupertinoIcons class for iOS style icons.\n   cupertino_icons: ^1.0.8\n-  adhan: ^2.0.0+1\n+  adhan:\n+    path: ../adhan-dart\n   geolocator: ^14.0.0\n   intl: ^0.20.2\n   geocoding: ^3.0.0\n   timezone: ^0.10.1\n"
                 }
             ],
             "date": 1747416095661,

@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:adhan/adhan.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
 
 void main() => runApp(
   MaterialApp(
@@ -16,72 +17,60 @@ class PrayerTimesDemo extends StatefulWidget {
 }
 
 class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
-  // Controllers for latitude and longitude input
   final TextEditingController _latController = TextEditingController(
     text: '60.1699',
-  ); // Default: Helsinki, Finland
+  );
   final TextEditingController _lngController = TextEditingController(
     text: '24.9384',
   );
 
-  // Variable to store calculated prayer times
-  PrayerTimes? _prayerTimes;
-
-  // Date format for displaying times
+  Map<String, String>? _prayerTimes;
   final DateFormat _timeFormat = DateFormat.jm();
-
-  // Selected date, defaulting to today
   DateTime _selectedDate = DateTime.now();
 
-  // Calculation parameters, default to Muslim World League
-  CalculationParameters _params =
-      CalculationMethod.muslim_world_league.getParameters();
-
-  // List of available calculation methods
-  final List<CalculationMethod> _calculationMethods = [
-    CalculationMethod.muslim_world_league,
-    CalculationMethod.egyptian,
-    CalculationMethod.karachi,
-    CalculationMethod.umm_al_qura,
-    CalculationMethod.dubai,
-    CalculationMethod.moon_sighting_committee,
-    CalculationMethod.north_america,
-    CalculationMethod.kuwait,
-    CalculationMethod.qatar,
-    CalculationMethod.singapore,
-    CalculationMethod.tehran,
-    CalculationMethod.turkey,
+  int _method = 3; // Default method: Umm al-Qura
+  final List<Map<String, dynamic>> _methods = [
+    {'name': 'Muslim World League', 'value': 3},
+    {'name': 'Egyptian', 'value': 5},
+    {'name': 'Karachi', 'value': 1},
+    {'name': 'Umm al-Qura', 'value': 4},
+    {'name': 'Dubai', 'value': 12},
+    {'name': 'Moonsighting Committee', 'value': 8},
+    {'name': 'North America (ISNA)', 'value': 2},
+    {'name': 'Kuwait', 'value': 9},
+    {'name': 'Qatar', 'value': 10},
+    {'name': 'Singapore', 'value': 11},
+    {'name': 'Tehran', 'value': 7},
+    {'name': 'Turkey', 'value': 13},
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Prayer Times Demo')),
+      appBar: AppBar(title: const Text('Prayer Times via Aladhan API')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             _buildLocationInput(),
-            _buildCalculationSettings(),
+            _buildMethodDropdown(),
             _buildDateSelection(),
             ElevatedButton(
-              onPressed: _calculateTimes,
-              child: const Text('Calculate Prayer Times'),
+              onPressed: _fetchPrayerTimes,
+              child: const Text('Fetch Prayer Times'),
             ),
             if (_prayerTimes != null) _buildResults(),
             const SizedBox(height: 16),
             const Text(
-              'This app uses the Adhan package to calculate prayer times.',
+              'This app uses the Aladhan.com API for prayer times.',
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
           ],
         ),
       ),
     );
   }
 
-  /// Builds the location input card with latitude and longitude fields
   Widget _buildLocationInput() {
     return Card(
       child: Padding(
@@ -104,54 +93,30 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
     );
   }
 
-  /// Builds the calculation settings card with method and madhab dropdowns
-  Widget _buildCalculationSettings() {
+  Widget _buildMethodDropdown() {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            DropdownButtonFormField<CalculationMethod>(
-              value: _params.method,
-              items:
-                  _calculationMethods.map((method) {
-                    return DropdownMenuItem<CalculationMethod>(
-                      value: method,
-                      child: Text(method.name),
-                    );
-                  }).toList(),
-              onChanged: (method) {
-                setState(() {
-                  _params = method!.getParameters();
-                });
-              },
-              decoration: const InputDecoration(
-                labelText: 'Calculation Method',
-              ),
-            ),
-            DropdownButtonFormField<Madhab>(
-              value: _params.madhab,
-              items:
-                  Madhab.values.map((madhab) {
-                    return DropdownMenuItem<Madhab>(
-                      value: madhab,
-                      child: Text(madhab == Madhab.shafi ? 'Shafi' : 'Hanafi'),
-                    );
-                  }).toList(),
-              onChanged: (madhab) {
-                setState(() {
-                  _params.madhab = madhab!;
-                });
-              },
-              decoration: const InputDecoration(labelText: 'Madhab'),
-            ),
-          ],
+        child: DropdownButtonFormField<int>(
+          value: _method,
+          items:
+              _methods.map((method) {
+                return DropdownMenuItem<int>(
+                  value: method['value'],
+                  child: Text(method['name']),
+                );
+              }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _method = value!;
+            });
+          },
+          decoration: const InputDecoration(labelText: 'Calculation Method'),
         ),
       ),
     );
   }
 
-  /// Builds the date selection row with a date picker button
   Widget _buildDateSelection() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -165,7 +130,6 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
     );
   }
 
-  /// Shows the date picker and updates the selected date
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -180,8 +144,48 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
     }
   }
 
-  /// Builds the results card displaying calculated prayer times
+  Future<void> _fetchPrayerTimes() async {
+    try {
+      final double lat = double.parse(_latController.text);
+      final double lng = double.parse(_lngController.text);
+
+      final dateString = DateFormat('dd-MM-yyyy').format(_selectedDate);
+      final url = Uri.parse(
+        'https://api.aladhan.com/v1/timings/$dateString?latitude=$lat&longitude=$lng&method=$_method',
+      );
+
+      print(url.toString()); // Debugging line to check the URL
+
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final timings = Map<String, dynamic>.from(data['data']['timings']);
+        setState(() {
+          _prayerTimes = timings.map((k, v) => MapEntry(k, v.toString()));
+        });
+      } else {
+        throw Exception('Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder:
+            (_) => AlertDialog(
+              title: const Text('Error'),
+              content: Text(e.toString()),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+      );
+    }
+  }
+
   Widget _buildResults() {
+    final keys = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -192,62 +196,30 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            _buildTimeRow('Fajr', _prayerTimes!.fajr),
-            _buildTimeRow('Sunrise', _prayerTimes!.sunrise),
-            _buildTimeRow('Dhuhr', _prayerTimes!.dhuhr),
-            _buildTimeRow('Asr', _prayerTimes!.asr),
-            _buildTimeRow('Maghrib', _prayerTimes!.maghrib),
-            _buildTimeRow('Isha', _prayerTimes!.isha),
+            ...keys.map((key) => _buildTimeRow(key, _prayerTimes![key]!)),
           ],
         ),
       ),
     );
   }
 
-  /// Helper method to build a row for each prayer time
-  Widget _buildTimeRow(String name, DateTime time) {
+  Widget _buildTimeRow(String name, String timeStr) {
+    // Parse string like "04:10" to DateTime today
+    final now = DateTime.now();
+    final parts = timeStr.split(':');
+    final parsedTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.tryParse(parts[0]) ?? 0,
+      int.tryParse(parts[1]) ?? 0,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(name), Text(_timeFormat.format(time))],
+        children: [Text(name), Text(_timeFormat.format(parsedTime))],
       ),
     );
-  }
-
-  /// Calculates prayer times based on user input
-  void _calculateTimes() {
-    try {
-      final double lat = double.parse(_latController.text);
-      final double lng = double.parse(_lngController.text);
-      final coordinates = Coordinates(lat, lng);
-
-      // Adjust high latitude rules
-      if (lat.abs() >= 60) {
-        _params.highLatitudeRule = HighLatitudeRule.seventh_of_the_night;
-      } else if (lat.abs() >= 45) {
-        _params.highLatitudeRule = HighLatitudeRule.twilight_angle;
-      }
-
-      final dateComponents = DateComponents.from(_selectedDate);
-      setState(() {
-        _prayerTimes = PrayerTimes(coordinates, dateComponents, _params);
-      });
-    } catch (e) {
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: const Text('Error'),
-              content: Text('Invalid input: ${e.toString()}'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-      );
-    }
   }
 }
