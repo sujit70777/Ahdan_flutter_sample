@@ -1,0 +1,22 @@
+{
+    "sourceFile": "lib/solution/main.dart",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1748429070366,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1748429267244,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -2,9 +2,9 @@\n \r\n import 'package:Adhan_flutter_example/solution/test2.dart';\r\n import 'package:flutter/material.dart';\r\n \r\n-void main() {\r\n+void mainOld() {\r\n   PrayTimes pt = PrayTimes('MWL');\r\n   pt.adjust({'highLats': 'AngleBased'});\r\n   Map<String, String> times = pt.getTimes(DateTime.now(), [\r\n     60.1699,\r\n"
+                }
+            ],
+            "date": 1748429070366,
+            "name": "Commit-0",
+            "content": "// ignore_for_file: avoid_print\r\n\r\nimport 'package:Adhan_flutter_example/solution/test2.dart';\r\nimport 'package:flutter/material.dart';\r\n\r\n\r\n\r\n\r\nvoid main() {\r\n  PrayTimes pt = PrayTimes('MWL');\r\n  pt.adjust({'highLats': 'AngleBased'});\r\n  Map<String, String> times = pt.getTimes(DateTime.now(), [\r\n    60.1699,\r\n    24.9384,\r\n  ], 3);\r\n  print('Sunrise: ${times['sunrise']}');\r\n  print('Sunset: ${times['sunset']}');\r\n  print('Midnight: ${times['midnight']}');\r\n  print('Imsak: ${times['imsak']}');\r\n  print('Fajr: ${times['fajr']}');\r\n  print('Dhuhr: ${times['dhuhr']}');\r\n  print('Asr: ${times['asr']}');\r\n  print('Maghrib: ${times['maghrib']}');\r\n  print('Isha: ${times['isha']}');\r\n  runApp(MyApp());\r\n}\r\n\r\nclass MyApp extends StatelessWidget {\r\n  @override\r\n  Widget build(BuildContext context) {\r\n    return MaterialApp(\r\n      title: 'Flutter Demo',\r\n      debugShowCheckedModeBanner: false,\r\n      theme: ThemeData.dark(),\r\n      home: Scaffold(\r\n        appBar: AppBar(\r\n          title: Text('Prayer Times'),\r\n        ),\r\n        body: Center(\r\n          child: Text('Prayer Times'),\r\n        ),\r\n      ),\r\n    );\r\n  }\r\n}\r\n"
+        }
+    ]
+}

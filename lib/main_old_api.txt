@@ -1,24 +1,16 @@
+
 import 'dart:convert';
-import 'package:Adhan_flutter_example/solution/data.txt';
-import 'package:Adhan_flutter_example/solution/gmt_utc.dart';
-import 'package:Adhan_flutter_example/solution/test2.dart';
-import 'package:Adhan_flutter_example/solution/timezone_calculator.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
-import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz;
 
-void main() {
-  tz.initializeTimeZones();
-  runApp(
-    MaterialApp(
-      theme: ThemeData.dark(),
-      debugShowCheckedModeBanner: false,
-      home: PrayerTimesDemo(),
-    ),
-  );
-}
+void main() => runApp(
+  MaterialApp(
+    theme: ThemeData.dark(),
+    debugShowCheckedModeBanner: false,
+    home: PrayerTimesDemo(),
+  ),
+);
 
 class PrayerTimesDemo extends StatefulWidget {
   @override
@@ -27,31 +19,30 @@ class PrayerTimesDemo extends StatefulWidget {
 
 class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
   final TextEditingController _latController = TextEditingController(
-    text: '24.9384',
+    text: '60.1699',
   );
   final TextEditingController _lngController = TextEditingController(
-    text: '87',
+    text: '24.9384',
   );
 
   Map<String, String>? _prayerTimes;
-  Map<String, String>? _prayerTimes2; // New prayer times
   final DateFormat _timeFormat = DateFormat.jm();
   DateTime _selectedDate = DateTime.now();
 
   int _method = 3; // Default method: Umm al-Qura
   final List<Map<String, dynamic>> _methods = [
-    {'name': 'Muslim World League', 'value': 3, 'key': 'MWL'},
-    {'name': 'Egyptian', 'value': 5, 'key': 'Egypt'},
-    {'name': 'Karachi', 'value': 1, 'key': 'Karachi'},
-    {'name': 'Umm al-Qura', 'value': 4, 'key': 'Makkah'},
-    // {'name': 'Dubai', 'value': 12, 'key': 'Dubai'},
-    // {'name': 'Moonsighting Committee', 'value': 8, 'key': 'ISNA'},
-    {'name': 'North America (ISNA)', 'value': 2, 'key': 'ISNA'},
-    // {'name': 'Kuwait', 'value': 9},
-    // {'name': 'Qatar', 'value': 10,},
-    // {'name': 'Singapore', 'value': 11, },
-    {'name': 'Tehran', 'value': 7, 'key': 'Tehran'},
-    // {'name': 'Turkey', 'value': 13},
+    {'name': 'Muslim World League', 'value': 3},
+    {'name': 'Egyptian', 'value': 5},
+    {'name': 'Karachi', 'value': 1},
+    {'name': 'Umm al-Qura', 'value': 4},
+    {'name': 'Dubai', 'value': 12},
+    {'name': 'Moonsighting Committee', 'value': 8},
+    {'name': 'North America (ISNA)', 'value': 2},
+    {'name': 'Kuwait', 'value': 9},
+    {'name': 'Qatar', 'value': 10},
+    {'name': 'Singapore', 'value': 11},
+    {'name': 'Tehran', 'value': 7},
+    {'name': 'Turkey', 'value': 13},
   ];
 
   @override
@@ -67,7 +58,7 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
             _buildDateSelection(),
             ElevatedButton(
               onPressed: _fetchPrayerTimes,
-              child: const Text('Get Prayer Times'),
+              child: const Text('Fetch Prayer Times'),
             ),
             if (_prayerTimes != null) _buildResults(),
             const SizedBox(height: 16),
@@ -117,7 +108,6 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
                 );
               }).toList(),
           onChanged: (value) {
-            print(value);
             setState(() {
               _method = value!;
             });
@@ -161,25 +151,6 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
       final double lng = double.parse(_lngController.text);
 
       final dateString = DateFormat('dd-MM-yyyy').format(_selectedDate);
-
-      String key = _methods.firstWhere((m) => m['value'] == _method)['key'];
-
-      PrayTimes pt = PrayTimes(key);
-
-      // if (double.parse(_latController.text).abs() >= 60) {
-      //   pt.adjust({'highLats': 'AngleBased'});
-      //   // _params.highLatitudeRule = HighLatitudeRule.seventh_of_the_night;
-      // } else if (double.parse(_latController.text).abs() >= 45) {
-      //   // _params.highLatitudeRule = HighLatitudeRule.twilight_angle;
-      // }
-      pt.adjust({'highLats': 'AngleBased'});
-
-      final double timezoneOffset = await getTimezoneOffset(lat, lng);
-
-      print('timezoneOffset: $timezoneOffset');
-
-      _prayerTimes2 = pt.getTimes(_selectedDate, [lat, lng], timezoneOffset);
-
       final url = Uri.parse(
         'https://api.aladhan.com/v1/timings/$dateString?latitude=$lat&longitude=$lng&method=$_method',
       );
@@ -197,7 +168,6 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
         throw Exception('Error: ${response.statusCode}');
       }
     } catch (e) {
-      print(e.toString());
       showDialog(
         context: context,
         builder:
@@ -215,51 +185,8 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
     }
   }
 
-  Future<double> getTimezoneOffset(double latitude, double longitude) async {
-    final url = Uri.parse(
-      'https://timeapi.io/api/timezone/coordinate?latitude=$latitude&longitude=$longitude',
-    );
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        // Extract seconds from currentUtcOffset and convert to hours
-        final seconds = data['currentUtcOffset']['seconds'] ?? 0;
-        return seconds / 3600.0; // Convert seconds to hours
-      } else {
-        throw Exception(
-          'Failed to fetch timezone offset: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Error fetching timezone offset: $e');
-    }
-  }
-
   Widget _buildResults() {
-    final keys = [
-      'Fajr',
-      'Sunrise',
-      'Dhuhr',
-      'Asr',
-      'Maghrib',
-      'Sunset',
-      'Isha',
-      'Imsak',
-    ];
-    final keys2 = [
-      'fajr',
-      'sunrise',
-      'dhuhr',
-      'asr',
-      'maghrib',
-      'sunset',
-      'isha',
-      'imsak',
-    ];
-
+    final keys = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -269,16 +196,8 @@ class _PrayerTimesDemoState extends State<PrayerTimesDemo> {
               'Prayer times for ${DateFormat.yMMMMd().format(_selectedDate)}',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 8),
-            Text("Fatch Time from API"),
-            ...keys.map((key) => _buildTimeRow(key, _prayerTimes![key] ?? '')),
-
-            const SizedBox(height: 8),
-            Text("Get Time from Offline Calculator"),
-            ...keys2.map(
-              (key) => _buildTimeRow(key, _prayerTimes2![key] ?? ''),
-            ),
+            ...keys.map((key) => _buildTimeRow(key, _prayerTimes![key]!)),
           ],
         ),
       ),
